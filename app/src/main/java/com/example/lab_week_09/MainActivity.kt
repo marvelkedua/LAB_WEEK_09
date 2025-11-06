@@ -40,6 +40,13 @@ import com.example.lab_week_09.ui.theme.OnBackgroundTitleText
 import com.example.lab_week_09.ui.theme.PrimaryTextButton
 import com.example.lab_week_09.ui.theme.LAB_WEEK_09Theme
 
+// --- IMPORT BARU UNTUK MOSHI ---
+import com.squareup.moshi.JsonAdapter
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.Types
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import java.lang.reflect.Type
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,7 +56,6 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // Panggil App composable dan buat NavController [cite: 605-617]
                     val navController = rememberNavController()
                     App(navController = navController)
                 }
@@ -58,28 +64,26 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// App Composable - Root Navigasi (Langkah 4, Part 4) [cite: 557-604]
+// App Composable - Root Navigasi (Tidak ada perubahan di sini)
 @Composable
 fun App(navController: NavHostController) {
     NavHost(
         navController = navController,
         startDestination = "home"
     ) {
-        // Rute "home" [cite: 569-579]
         composable("home") {
             Home { listDataString ->
-                // Navigasi ke "resultContent" dengan data
                 navController.navigate(
                     "resultContent/?listData=$listDataString")
             }
         }
-        // Rute "resultContent" dengan argumen [cite: 580-602]
         composable(
             "resultContent/?listData={listData}",
             arguments = listOf(navArgument("listData") {
                 type = NavType.StringType
             })
         ) {
+            // Ambil argumen JSON (masih sebagai String)
             ResultContent(
                 it.arguments?.getString("listData").orEmpty()
             )
@@ -91,10 +95,10 @@ data class Student(
     var name: String
 )
 
-// Home Composable - diperbarui (Langkah 6, Part 4) [cite: 620-625]
+// Home Composable - DIPERBARUI
 @Composable
 fun Home(
-    navigateFromHomeToResult: (String) -> Unit // Parameter lambda baru
+    navigateFromHomeToResult: (String) -> Unit
 ) {
     val listData = remember {
         mutableStateListOf(
@@ -105,7 +109,12 @@ fun Home(
     }
     var inputField by remember { mutableStateOf(Student("")) }
 
-    // Memanggil HomeContent - diperbarui (Langkah 8, Part 4) [cite: 635-645]
+    // --- PERUBAHAN TUGAS 2: SIAPKAN MOSHI ---
+    val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
+    val listType: Type = Types.newParameterizedType(List::class.java, Student::class.java)
+    val jsonAdapter: JsonAdapter<List<Student>> = moshi.adapter(listType)
+    // --- AKHIR PERUBAHAN ---
+
     HomeContent(
         listData = listData,
         inputField = inputField,
@@ -116,19 +125,29 @@ fun Home(
             }
             inputField = Student("")
         },
-        // Teruskan lambda navigasi [cite: 645]
-        navigateFromHomeToResult = { navigateFromHomeToResult(listData.toList().toString()) }
+
+        // --- PERUBAHAN TUGAS 2: KONVERSI KE JSON ---
+        navigateFromHomeToResult = {
+            // Ubah listData menjadi List<Student>
+            val listAsList = listData.toList()
+            // Konversi list menjadi string JSON
+            val listAsJson = jsonAdapter.toJson(listAsList)
+            // Kirim string JSON
+            navigateFromHomeToResult(listAsJson)
+        }
+        // --- AKHIR PERUBAHAN ---
     )
 }
 
-// HomeContent Composable - diperbarui (Langkah 7 & 9, Part 4)
+// HomeContent Composable (Tidak ada perubahan di sini)
+// HomeContent Composable (DENGAN PERBAIKAN)
 @Composable
 fun HomeContent(
     listData: SnapshotStateList<Student>,
     inputField: Student,
     onInputValueChange: (String) -> Unit,
     onButtonClick: () -> Unit,
-    navigateFromHomeToResult: () -> Unit // Parameter lambda baru [cite: 627-634]
+    navigateFromHomeToResult: () -> Unit
 ) {
     LazyColumn {
         item {
@@ -146,54 +165,92 @@ fun HomeContent(
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Text
                     ),
+                    // --- INI PERBAIKANNYA ---
+                    // Mengganti 'onValueVChange' menjadi 'onValueChange'
                     onValueChange = {
                         onInputValueChange(it)
                     }
+                    // --- AKHIR PERBAIKAN ---
                 )
 
-                // Row ditambahkan (Langkah 9, Part 4) [cite: 646-678]
                 Row {
                     PrimaryTextButton(text = stringResource(id =
                         R.string.button_click)) {
-                        onButtonClick() // [cite: 671]
+                        onButtonClick()
                     }
                     PrimaryTextButton(text = stringResource(id =
                         R.string.button_navigate)) {
-                        navigateFromHomeToResult() // [cite: 675]
+                        navigateFromHomeToResult()
                     }
                 }
             }
         }
-        items(listData) { item -> // [cite: 680]
+        items(listData) { item ->
             Column(
                 modifier = Modifier
                     .padding(vertical = 4.dp)
                     .fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                OnBackgroundItemText(text = item.name) // [cite: 688]
+                OnBackgroundItemText(text = item.name)
             }
         }
     }
 }
 
-// ResultContent Composable - (Langkah 10, Part 4) [cite: 698-713]
+// ResultContent Composable - DIPERBARUI
 @Composable
-fun ResultContent(listData: String) {
-    Column (
-        modifier = Modifier
-            .padding(vertical = 4.dp)
-            .fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        OnBackgroundItemText(text = listData)
+fun ResultContent(listData: String) { // listData sekarang adalah JSON String
+
+    // --- PERUBAHAN TUGAS 2: SIAPKAN MOSHI & PARSING JSON ---
+    val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
+    val listType: Type = Types.newParameterizedType(List::class.java, Student::class.java)
+    val jsonAdapter: JsonAdapter<List<Student>> = moshi.adapter(listType)
+
+    // Parsing JSON String kembali ke List<Student>
+    // Gunakan try-catch untuk menghindari crash jika JSON tidak valid
+    val studentList: List<Student>? = try {
+        jsonAdapter.fromJson(listData)
+    } catch (e: Exception) {
+        null // Gagal parsing
     }
+    // --- AKHIR PERUBAHAN ---
+
+    // --- PERUBAHAN TUGAS 2: TAMPILKAN DENGAN LAZYCOLUMN ---
+    if (studentList != null) {
+        LazyColumn (
+            modifier = Modifier
+                .padding(16.dp) // Beri padding
+                .fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Judul
+            item {
+                OnBackgroundTitleText(text = "Final Student List")
+            }
+
+            // Tampilkan daftar siswa
+            items(studentList) { student ->
+                OnBackgroundItemText(text = student.name)
+            }
+        }
+    } else {
+        // Tampilkan pesan error jika parsing gagal
+        Column(
+            modifier = Modifier
+                .padding(vertical = 4.dp)
+                .fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            OnBackgroundItemText(text = "Error: Failed to load list.")
+        }
+    }
+    // --- AKHIR PERUBAHAN ---
 }
 
 
 @Preview(showBackground = true)
 @Composable
 fun PreviewHome() {
-    // Diperbarui agar preview berfungsi dengan parameter lambda baru
     Home(navigateFromHomeToResult = {})
 }
