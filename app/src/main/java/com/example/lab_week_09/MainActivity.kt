@@ -4,12 +4,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
-// Hapus import Button karena sudah tidak dipakai langsung di HomeContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -27,7 +27,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
-// Import Composable kustom dari Elements.kt
+// Import untuk Navigasi
+import androidx.navigation.NavHostController
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+// Import Composable kustom
 import com.example.lab_week_09.ui.theme.OnBackgroundItemText
 import com.example.lab_week_09.ui.theme.OnBackgroundTitleText
 import com.example.lab_week_09.ui.theme.PrimaryTextButton
@@ -42,9 +49,40 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    Home()
+                    // Panggil App composable dan buat NavController [cite: 605-617]
+                    val navController = rememberNavController()
+                    App(navController = navController)
                 }
             }
+        }
+    }
+}
+
+// App Composable - Root Navigasi (Langkah 4, Part 4) [cite: 557-604]
+@Composable
+fun App(navController: NavHostController) {
+    NavHost(
+        navController = navController,
+        startDestination = "home"
+    ) {
+        // Rute "home" [cite: 569-579]
+        composable("home") {
+            Home { listDataString ->
+                // Navigasi ke "resultContent" dengan data
+                navController.navigate(
+                    "resultContent/?listData=$listDataString")
+            }
+        }
+        // Rute "resultContent" dengan argumen [cite: 580-602]
+        composable(
+            "resultContent/?listData={listData}",
+            arguments = listOf(navArgument("listData") {
+                type = NavType.StringType
+            })
+        ) {
+            ResultContent(
+                it.arguments?.getString("listData").orEmpty()
+            )
         }
     }
 }
@@ -53,8 +91,11 @@ data class Student(
     var name: String
 )
 
+// Home Composable - diperbarui (Langkah 6, Part 4) [cite: 620-625]
 @Composable
-fun Home() {
+fun Home(
+    navigateFromHomeToResult: (String) -> Unit // Parameter lambda baru
+) {
     val listData = remember {
         mutableStateListOf(
             Student("Tanu"),
@@ -64,6 +105,7 @@ fun Home() {
     }
     var inputField by remember { mutableStateOf(Student("")) }
 
+    // Memanggil HomeContent - diperbarui (Langkah 8, Part 4) [cite: 635-645]
     HomeContent(
         listData = listData,
         inputField = inputField,
@@ -73,17 +115,20 @@ fun Home() {
                 listData.add(inputField.copy())
             }
             inputField = Student("")
-        }
+        },
+        // Teruskan lambda navigasi [cite: 645]
+        navigateFromHomeToResult = { navigateFromHomeToResult(listData.toList().toString()) }
     )
 }
 
-// HomeContent diperbarui di Langkah 3 (Part 3) [cite: 470, 477-541]
+// HomeContent Composable - diperbarui (Langkah 7 & 9, Part 4)
 @Composable
 fun HomeContent(
     listData: SnapshotStateList<Student>,
     inputField: Student,
     onInputValueChange: (String) -> Unit,
-    onButtonClick: () -> Unit
+    onButtonClick: () -> Unit,
+    navigateFromHomeToResult: () -> Unit // Parameter lambda baru [cite: 627-634]
 ) {
     LazyColumn {
         item {
@@ -93,7 +138,6 @@ fun HomeContent(
                     .fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Menggunakan Composable kustom [cite: 496-499]
                 OnBackgroundTitleText(text = stringResource(
                     id = R.string.enter_item)
                 )
@@ -106,30 +150,50 @@ fun HomeContent(
                         onInputValueChange(it)
                     }
                 )
-                // Menggunakan Composable kustom [cite: 516-522]
-                PrimaryTextButton(text = stringResource(
-                    id = R.string.button_click)
-                ) {
-                    onButtonClick()
+
+                // Row ditambahkan (Langkah 9, Part 4) [cite: 646-678]
+                Row {
+                    PrimaryTextButton(text = stringResource(id =
+                        R.string.button_click)) {
+                        onButtonClick() // [cite: 671]
+                    }
+                    PrimaryTextButton(text = stringResource(id =
+                        R.string.button_navigate)) {
+                        navigateFromHomeToResult() // [cite: 675]
+                    }
                 }
             }
         }
-        items(listData) { item ->
+        items(listData) { item -> // [cite: 680]
             Column(
                 modifier = Modifier
                     .padding(vertical = 4.dp)
                     .fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Menggunakan Composable kustom [cite: 540-541]
-                OnBackgroundItemText(text = item.name)
+                OnBackgroundItemText(text = item.name) // [cite: 688]
             }
         }
     }
 }
 
+// ResultContent Composable - (Langkah 10, Part 4) [cite: 698-713]
+@Composable
+fun ResultContent(listData: String) {
+    Column (
+        modifier = Modifier
+            .padding(vertical = 4.dp)
+            .fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        OnBackgroundItemText(text = listData)
+    }
+}
+
+
 @Preview(showBackground = true)
 @Composable
 fun PreviewHome() {
-    Home()
+    // Diperbarui agar preview berfungsi dengan parameter lambda baru
+    Home(navigateFromHomeToResult = {})
 }
