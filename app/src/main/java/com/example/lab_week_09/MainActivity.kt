@@ -15,6 +15,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -28,73 +34,93 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             LAB_WEEK_09Theme {
-                // Surface container using the 'background' color from the theme
                 Surface(
-                    // Kode ini diambil dari Langkah 13
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    val list = listOf("Tanu", "Tina", "Tono")
-                    // Here, we call the Home composable
-                    Home(list)
+                    Home() // Memanggil Home() tanpa parameter
                 }
             }
         }
     }
 }
 
-// Kode ini diambil dari Langkah 12
-// @Preview dihapus dari sini karena composable memiliki parameter
+// Data class Student
+data class Student(
+    var name: String
+)
+
+// Home Composable
 @Composable
-fun Home(items: List<String>) { // Parameter ditambahkan [cite: 130]
-    // LazyColumn lebih efisien, seperti RecyclerView [cite: 131-133]
+fun Home() {
+    val listData = remember {
+        mutableStateListOf(
+            Student("Tanu"),
+            Student("Tina"),
+            Student("Tono")
+        )
+    }
+
+    var inputField by remember { mutableStateOf(Student("")) }
+
+    HomeContent(
+        listData = listData,
+        inputField = inputField,
+        onInputValueChange = { newName -> inputField = inputField.copy(name = newName) },
+        onButtonClick = {
+            if (inputField.name.isNotBlank()) {
+                listData.add(inputField.copy())
+            }
+            inputField = Student("")
+        }
+    )
+}
+
+// HomeContent Composable
+@Composable
+fun HomeContent(
+    listData: SnapshotStateList<Student>,
+    inputField: Student,
+    onInputValueChange: (String) -> Unit,
+    onButtonClick: () -> Unit
+) {
     LazyColumn {
-        // item untuk menampilkan satu item di LazyColumn
         item {
             Column(
-                // Modifier.padding(16.dp) untuk menambah padding [cite: 139]
-                modifier = Modifier.padding(16.dp).fillMaxSize(),
-                // Alignment.CenterHorizontally untuk rata tengah horizontal [cite: 147]
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text = stringResource(
-                    id = R.string.enter_item) // Mengambil string [cite: 156-157]
-                )
-                // TextField untuk input teks [cite: 159]
+                Text(text = stringResource(id = R.string.enter_item))
                 TextField(
-                    value = "",
-                    // Keyboard type [cite: 161-163]
+                    value = inputField.name,
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number
+                        keyboardType = KeyboardType.Text
                     ),
-                    // Event saat nilai berubah [cite: 164, 167]
-                    onValueChange = {
-                    }
+                    onValueChange = { onInputValueChange(it) }
                 )
-                // Button untuk tombol [cite: 170]
-                Button(onClick = { }) {
-                    // Teks tombol [cite: 174-176]
-                    Text(text = stringResource(
-                        id = R.string.button_click)
-                    )
+                Button(onClick = { onButtonClick() }) {
+                    Text(text = stringResource(id = R.string.button_click))
                 }
             }
         }
-        // items untuk menampilkan list item (pengganti Adapter) [cite: 181-184]
-        items(items) { item ->
+        items(listData) { item ->
             Column(
-                modifier = Modifier.padding(vertical = 4.dp).fillMaxSize(),
+                modifier = Modifier
+                    .padding(vertical = 4.dp)
+                    .fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text = item)
+                Text(text = item.name)
             }
         }
     }
 }
 
-// Fungsi preview terpisah untuk Home [cite: 195-202]
+// Preview
 @Preview(showBackground = true)
 @Composable
 fun PreviewHome() {
-    Home(listOf("Tanu", "Tina", "Tono"))
+    Home()
 }
