@@ -18,15 +18,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.example.lab_week_09.ui.theme.LAB_WEEK_09Theme
 
 class MainActivity : ComponentActivity() {
@@ -34,6 +34,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             LAB_WEEK_09Theme {
+                // Surface container using the 'background' color from the theme
+                // Kode ini dari Langkah 6 (Part 2)
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -45,14 +47,15 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// Data class Student
+// Data class Student dari Langkah 2 (Part 2)
 data class Student(
     var name: String
 )
 
-// Home Composable
+// Home Composable dari Langkah 3 (Part 2)
 @Composable
 fun Home() {
+    // Membuat mutable state List untuk Student
     val listData = remember {
         mutableStateListOf(
             Student("Tanu"),
@@ -60,23 +63,26 @@ fun Home() {
             Student("Tono")
         )
     }
+    // Membuat mutable state untuk input field
+    var inputField by remember { mutableStateOf(Student("")) } // Menggunakan 'by' delegate
 
-    var inputField by remember { mutableStateOf(Student("")) }
-
+    // Memanggil HomeContent Composable
     HomeContent(
         listData = listData,
         inputField = inputField,
+        // Lambda untuk update inputField
         onInputValueChange = { newName -> inputField = inputField.copy(name = newName) },
+        // Lambda untuk tombol submit
         onButtonClick = {
             if (inputField.name.isNotBlank()) {
-                listData.add(inputField.copy())
+                listData.add(inputField.copy()) // Menambah data baru ke list
             }
-            inputField = Student("")
+            inputField = Student("") // Reset input field
         }
     )
 }
 
-// HomeContent Composable
+// HomeContent Composable dari Langkah 4 (Part 2)
 @Composable
 fun HomeContent(
     listData: SnapshotStateList<Student>,
@@ -85,31 +91,39 @@ fun HomeContent(
     onButtonClick: () -> Unit
 ) {
     LazyColumn {
+        // Item untuk input field dan tombol
         item {
             Column(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxSize(),
+                modifier = Modifier.padding(16.dp).fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text = stringResource(id = R.string.enter_item))
+                Text(text = stringResource(
+                    id = R.string.enter_item)
+                )
+                // TextField untuk input teks
                 TextField(
                     value = inputField.name,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Text
                     ),
-                    onValueChange = { onInputValueChange(it) }
+                    onValueChange = {
+                        onInputValueChange(it)
+                    }
                 )
-                Button(onClick = { onButtonClick() }) {
-                    Text(text = stringResource(id = R.string.button_click))
+                // Button untuk tombol submit
+                Button(onClick = {
+                    onButtonClick()
+                }) {
+                    Text(text = stringResource(
+                        id = R.string.button_click)
+                    )
                 }
             }
         }
+        // Menampilkan daftar item (listData)
         items(listData) { item ->
             Column(
-                modifier = Modifier
-                    .padding(vertical = 4.dp)
-                    .fillMaxSize(),
+                modifier = Modifier.padding(vertical = 4.dp).fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(text = item.name)
@@ -118,9 +132,11 @@ fun HomeContent(
     }
 }
 
-// Preview
+// Preview untuk Home Composable (diperbarui)
 @Preview(showBackground = true)
 @Composable
 fun PreviewHome() {
+    // Preview sekarang memanggil Home()
+    // yang sudah memiliki state internal
     Home()
 }
